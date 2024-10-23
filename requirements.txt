@@ -8,4 +8,5 @@ yfinance
 seaborn
 mplfinance 
 plotly
+sklearn
 
