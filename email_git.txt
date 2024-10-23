@@ -1,0 +1,1 @@
+git config --global user.email 56864644+yCobanoglu@users.noreply.github.com
