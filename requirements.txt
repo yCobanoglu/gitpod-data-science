@@ -9,4 +9,7 @@ seaborn
 mplfinance 
 plotly
 scikit-learn
+jax
+jaxlib
+flax
 
