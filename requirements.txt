@@ -10,6 +10,12 @@ mplfinance
 plotly
 scikit-learn
 jax
-jaxlib
 flax
+optax
+clu
+tqdm
+keras
+ruff
+orbax-checkpoint
+orbax
 
