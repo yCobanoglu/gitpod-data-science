@@ -34,6 +34,8 @@ ckpt_path = "/home/yunus/PycharmProjects/DeepLearning1/src/flax_autoencoder/flax
 train_ds = tfds.load("mnist", split="train", shuffle_files=True)
 test_ds = tfds.load("mnist", split="test")
 
+
+asd = iter(train_ds.batch(len(train_ds)))
 _X_train = next(iter(train_ds.batch(len(train_ds))))["image"]
 _X_train = tf.reshape(_X_train, [_X_train.shape[0], -1])
 
