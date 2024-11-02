@@ -1,6 +1,16 @@
 from datetime import datetime
 
 import jax
+import matplotlib.pyplot as plt
+
+import jax
+
+import jax.numpy as jnp
+import jax.scipy as jsp
+from jax import random
+
+import numpy as np
+import scipy as sp
 import jax.numpy as jnp
 import keras
 import optax
@@ -104,8 +114,51 @@ test_dataloader = train_ds.map(process_image).map(standardize).batch(test_batch_
 
 ########################################################################
 
+@jax.jit
+def log_joint(beta):
+    result = 0.
+    # Note that no `axis` parameter is provided to `jnp.sum`.
+    result = result + jnp.sum(jsp.stats.norm.logpdf(beta, loc=0., scale=10.))
+    result = result + jnp.sum(-jnp.log(1 + jnp.exp(-(2*y-1) * jnp.dot(all_x, beta))))
+    return result
+
+batched_log_joint = jax.jit(jax.vmap(log_joint))
+
+def elbo(beta_loc, beta_log_scale, epsilon):
+    beta_sample = beta_loc + jnp.exp(beta_log_scale) * epsilon
+    return jnp.mean(batched_log_joint(beta_sample), 0) + jnp.sum(beta_log_scale - 0.5 * np.log(2*np.pi))
+
+elbo = jax.jit(elbo)
+elbo_val_and_grad = jax.jit(jax.value_and_grad(elbo, argnums=(0, 1)))
+
+
+def normal_sample(key, shape):
+    """Convenience function for quasi-stateful RNG."""
+    new_key, sub_key = random.split(key)
+    return new_key, random.normal(sub_key, shape)
+
+normal_sample = jax.jit(normal_sample, static_argnums=(1,))
+
+key = random.key(10003)
+
+beta_loc = jnp.zeros(INPUT_SIZE, jnp.float32)
+beta_log_scale = jnp.zeros(INPUT_SIZE, jnp.float32)
+
+
+epsilon_shape = (BATCH_SIZE, INPUT_SIZE)
+
+
 num_steps_per_epoch = train_dataloader.cardinality().numpy() // EPOCHS
 epochs_iterator = tqdm(enumerate(train_dataloader.as_numpy_iterator()), total=train_dataloader.cardinality().numpy())
 
+
 for step, batch in epochs_iterator:
-    pass
+    key, epsilon = normal_sample(key, epsilon_shape)
+    elbo_val, (beta_loc_grad, beta_log_scale_grad) = elbo_val_and_grad(
+        beta_loc, beta_log_scale, epsilon)
+    beta_loc += LEARNING_RATE * beta_loc_grad
+    beta_log_scale += LEARNING_RATE * beta_log_scale_grad
+    if step % 10 == 0:
+        print('{}\t{}'.format(step, elbo_val))
+
+
